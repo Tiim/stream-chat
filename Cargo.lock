@@ -177,6 +177,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "demoji"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "751460fd45c92e82e22a36f9ab5af571ec5a9e7032aee999a8e9d0e5e23b7077"
+dependencies = [
+ "regex",
+]
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1359,6 +1368,7 @@ name = "yt-chat"
 version = "0.1.0"
 dependencies = [
  "colored",
+ "demoji",
  "tokio",
  "youtube_chat",
 ]
