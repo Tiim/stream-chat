@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{time::Duration, env};
 use colored::Colorize;
 
 use tokio::{task, time};
@@ -7,15 +7,30 @@ use demoji::demoji;
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let stream_url: String;
+    if args.len() == 1 {
+        println!("WARNING: using default stream url!");
+        stream_url = "https://www.youtube.com/watch?v=jfKfPfyJRdk".to_string()
+    }
+    else if args.len() > 2 {
+        println!("Usage {} <Stream Url>", args[0]);
+        return;
+    } else {
+        stream_url = args[1].to_string();
+    }
+
+    println!("Starting youtube chat!");
     let mut client = LiveChatClientBuilder::new()
-        .url("https://www.youtube.com/watch?v=xOw4_GRDqQE".to_string())
+        .url(stream_url)
         .unwrap()
         .on_chat(|chat_item|print_chat_message(chat_item))
         .on_error(|error| eprintln!("{:?}", error))
         .build();
     client.start().await.unwrap();
     let forever = task::spawn(async move {
-        let mut interval = time::interval(Duration::from_millis(3000));
+        let mut interval = time::interval(Duration::from_millis(1000));
         loop {
             interval.tick().await;
             client.execute().await;
@@ -30,10 +45,11 @@ fn print_chat_message(msg: ChatItem) {
     let author = msg.author;
     let txt = msg.message;
 
-    let bar = "|".truecolor(100,100,100);
+    // let bar = "|".truecolor(100,100,100);
 
     if let Some(author_name) = author.name {
-        print!("{:<16.16}{}", demoji(&author_name).green().bold(), bar);
+        // print!("{:<10.10}{}", demoji(&author_name).green().bold(), bar);
+        print!("{:.16} ", demoji(&author_name).green().bold());
     }
     let full_text = txt
         .iter()
