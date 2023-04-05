@@ -1,4 +1,4 @@
-# Youtube Chat in Console
+# Chat in Console
 
 Tiny rust program that prints the youtube chat in the console in the following format:
 
@@ -6,3 +6,14 @@ Tiny rust program that prints the youtube chat in the console in the following f
 <author> message
 <author2> message 2.
 ```
+
+
+## Planned features
+
+- [ ] Multiple "inputs":
+    - [x] Youtube chat
+    - [ ] Twitch chat
+    - [ ] IRC chat
+    - [ ] others?
+- [ ] minimal webserver to display chat in browser
+    - [ ] send using server sent events
