@@ -9,7 +9,7 @@ Tiny rust program that prints the youtube chat in the console in the following f
 
 
 ## Planned features
-
+- [ ] clean up text and usernames unicode characters
 - [ ] Multiple "inputs":
     - [x] Youtube chat
     - [ ] Twitch chat
@@ -17,3 +17,4 @@ Tiny rust program that prints the youtube chat in the console in the following f
     - [ ] others?
 - [ ] minimal webserver to display chat in browser
     - [ ] send using server sent events
+- [ ] inline images for outputs that support it

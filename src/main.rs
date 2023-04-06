@@ -1,15 +1,16 @@
-mod console_dest;
-mod destination;
+mod dest_console;
 mod source;
-mod yt;
+mod src_twitch;
+mod src_yt;
 
 use std::env;
 
 use anyhow::Result;
-use source::Source;
+use src_twitch::TwitchSource;
+use src_yt::YoutubeSource;
 use tokio::sync::mpsc::unbounded_channel;
 
-use crate::{console_dest::ConsoleDestination, destination::Dest};
+use crate::dest_console::ConsoleDestination;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -27,10 +28,15 @@ async fn main() -> Result<()> {
     }
     let (tx, rx) = unbounded_channel();
 
-    let yt = yt::YoutubeSource::new(tx, stream_url.as_str())?.run();
+    let yt = YoutubeSource::new(tx.clone(), stream_url.as_str())?.run();
+    let twitch = TwitchSource::new(tx, "xrohat".to_string())?.run();
     let console = ConsoleDestination::new(rx).run();
 
-    tokio::join!(yt, console); // add other sources here too.
+    let res = tokio::try_join!(yt, twitch, console); // add other sources and destinations here too.
+
+    if let Err(e) = res {
+        println!("error: {}", e)
+    }
 
     return Ok(());
 }

@@ -11,4 +11,5 @@ chrono = "0.4.24"
 colored = "2.0.0"
 demoji = "0.0.3"
 tokio = { version = "1.25.0", features = ["full"]}
+twitchchat = { git = "https://github.com/museun/twitchchat", version = "0.14.8", features = ["async", "tokio", "tokio-util"] }
 youtube_chat = "0.1.4"

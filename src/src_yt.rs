@@ -4,14 +4,14 @@ use anyhow::{Error, Result};
 use chrono::Utc;
 use demoji::demoji;
 
-use tokio::{sync::mpsc::UnboundedSender, task, time};
+use tokio::{sync::mpsc::UnboundedSender, time};
 
 use youtube_chat::{
     item::{ChatItem, EmojiItem, MessageItem},
     live_chat::LiveChatClientBuilder,
 };
 
-use crate::source::{self, ChatEvent, Event};
+use crate::source::{ChatEvent, ChatSource, Event};
 
 pub struct YoutubeSource {
     stream_url: String,
@@ -37,24 +37,18 @@ impl YoutubeSource {
             println!("Error when sending recv error to consumer: {}", e);
         }
     }
-}
-
-impl source::Source for YoutubeSource {
-    fn run(self) -> task::JoinHandle<()> {
-        task::spawn(async move {
-            let mut client = LiveChatClientBuilder::new()
-                .url(self.stream_url)
-                .unwrap()
-                .on_chat(|ci| Self::send_message(self.tx.clone(), ci))
-                .on_error(|err| Self::send_error(self.tx.clone(), err))
-                .build();
-            client.start().await.unwrap();
-            let mut interval = time::interval(Duration::from_millis(1000));
-            loop {
-                interval.tick().await;
-                client.execute().await;
-            }
-        })
+    pub async fn run(self) -> Result<()> {
+        let mut client = LiveChatClientBuilder::new()
+            .url(self.stream_url)?
+            .on_chat(|ci| Self::send_message(self.tx.clone(), ci))
+            .on_error(|err| Self::send_error(self.tx.clone(), err))
+            .build();
+        client.start().await?;
+        let mut interval = time::interval(Duration::from_millis(1000));
+        loop {
+            interval.tick().await;
+            client.execute().await;
+        }
     }
 }
 
@@ -62,10 +56,7 @@ fn format_message(msg: ChatItem) -> Event {
     let author;
     let txt = msg.message;
 
-    // let bar = "|".truecolor(100,100,100);
-
     if let Some(author_name) = msg.author.name {
-        // print!("{:<10.10}{}", demoji(&author_name).green().bold(), bar);
         author = format!("{:.16}", demoji(&author_name));
     } else {
         author = "@".to_string();
@@ -88,9 +79,10 @@ fn format_message(msg: ChatItem) -> Event {
         );
     Event::Chat {
         chat: ChatEvent {
-            message: format!("{}", full_text),
-            author,
+            src: ChatSource::YoutubeLive,
             ts: Utc::now(),
+            author,
+            message: format!("{}", full_text),
         },
     }
 }

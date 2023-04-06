@@ -1,6 +1,12 @@
 use chrono::Utc;
-use tokio::task;
 
+#[derive(Debug)]
+pub enum ChatSource {
+    YoutubeLive,
+    Twitch,
+}
+
+#[derive(Debug)]
 pub enum Event {
     Chat { chat: ChatEvent },
     Error { err: String },
@@ -9,11 +15,8 @@ pub enum Event {
 
 #[derive(Debug)]
 pub struct ChatEvent {
+    pub src: ChatSource,
     pub ts: chrono::DateTime<Utc>,
     pub author: String,
     pub message: String,
-}
-
-pub trait Source {
-    fn run(self) -> task::JoinHandle<()>;
 }
