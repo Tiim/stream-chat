@@ -7,28 +7,23 @@ use twitchchat::{connector::tokio::Connector, messages, runner::AsyncRunner, Sta
 use anyhow::Result;
 
 pub struct TwitchSource {
-    user_config: UserConfig,
-    connector: Connector,
-    channel: String,
+    runner: AsyncRunner,
     tx: UnboundedSender<Event>,
 }
 
 impl TwitchSource {
-    pub fn new(tx: UnboundedSender<Event>, channel: String) -> Result<Self> {
-        let user_config = UserConfig::builder().anonymous().build().unwrap();
+    pub async fn new(tx: UnboundedSender<Event>, channel: String) -> Result<Self> {
+        let user_config = UserConfig::builder().anonymous().build()?;
         let connector = Connector::twitch()?;
-        Ok(TwitchSource {
-            user_config,
-            connector,
-            channel,
-            tx,
-        })
+
+        let mut runner = AsyncRunner::connect(connector, &user_config).await?;
+        runner.join(channel.as_str()).await?;
+
+        Ok(TwitchSource { runner, tx })
     }
-    pub async fn run(self) -> anyhow::Result<()> {
-        let mut runner = AsyncRunner::connect(self.connector, &self.user_config).await?;
-        runner.join(self.channel.as_str()).await?;
+    pub async fn run(mut self) -> anyhow::Result<()> {
         loop {
-            let status = runner.next_message().await?;
+            let status = self.runner.next_message().await?;
             match status {
                 Status::Message(msg) => handle_message(&self.tx, msg),
                 Status::Quit => {}

@@ -16,7 +16,6 @@ impl ConsoleDestination {
             match event {
                 Event::Chat { chat } => print_chat(chat),
                 Event::Error { err } => println!("{}", err),
-                Event::FatalError { err } => todo!("{}", err),
             }
         }
         Err(anyhow::format_err!("Can't receive any more chat events"))

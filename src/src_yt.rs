@@ -19,9 +19,9 @@ pub struct YoutubeSource {
 }
 
 impl YoutubeSource {
-    pub fn new(tx: UnboundedSender<Event>, stream_url: &str) -> Result<Self> {
+    pub async fn new(tx: UnboundedSender<Event>, channel_username: String) -> Result<Self> {
         return Ok(YoutubeSource {
-            stream_url: stream_url.to_string(),
+            stream_url: format!("https://www.youtube.com/{}/live", channel_username),
             tx,
         });
     }

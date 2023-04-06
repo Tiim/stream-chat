@@ -10,7 +10,6 @@ pub enum ChatSource {
 pub enum Event {
     Chat { chat: ChatEvent },
     Error { err: String },
-    FatalError { err: String },
 }
 
 #[derive(Debug)]
