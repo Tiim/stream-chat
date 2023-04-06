@@ -66,7 +66,7 @@ fn format_message(msg: ChatItem) -> Event {
 
     if let Some(author_name) = msg.author.name {
         // print!("{:<10.10}{}", demoji(&author_name).green().bold(), bar);
-        author = format!("{:.16} ", demoji(&author_name));
+        author = format!("{:.16}", demoji(&author_name));
     } else {
         author = "@".to_string();
     }
@@ -88,7 +88,7 @@ fn format_message(msg: ChatItem) -> Event {
         );
     Event::Chat {
         chat: ChatEvent {
-            message: format!("{}\n", full_text),
+            message: format!("{}", full_text),
             author,
             ts: Utc::now(),
         },

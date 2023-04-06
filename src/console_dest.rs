@@ -1,5 +1,5 @@
 use crate::destination::Dest;
-use crate::source::Event;
+use crate::source::{Event, ChatEvent};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task;
 
@@ -18,11 +18,16 @@ impl Dest for ConsoleDestination {
         task::spawn(async move {
             while let Some(event) = self.rx.recv().await {
                 match event {
-                    Event::Chat { chat } => println!("{:?}", chat),
+                    Event::Chat { chat } => print_chat(chat),
                     Event::Error { err } => println!("{}", err),
                     Event::FatalError { err } => todo!("{}", err),
                 }
             }
         })
     }
+}
+
+
+fn print_chat( ce: ChatEvent) {
+    println!("<{}> {}", ce.author, ce.message);
 }
