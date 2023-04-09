@@ -37,7 +37,7 @@ impl YoutubeSource {
             println!("Error when sending recv error to consumer: {}", e);
         }
     }
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self) -> Result<String> {
         let mut client = LiveChatClientBuilder::new()
             .url(self.stream_url)?
             .on_chat(|ci| Self::send_message(self.tx.clone(), ci))

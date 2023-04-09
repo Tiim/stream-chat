@@ -4,11 +4,13 @@ use chrono::Utc;
 pub enum ChatSource {
     YoutubeLive,
     Twitch,
+    IRC
 }
 
 #[derive(Debug)]
 pub enum Event {
     Chat { chat: ChatEvent },
+    Info { msg: String, src: Option<ChatSource> },
     Error { err: String },
 }
 

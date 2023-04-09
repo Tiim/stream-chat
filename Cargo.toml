@@ -10,6 +10,8 @@ anyhow = "1.0.70"
 chrono = "0.4.24"
 colored = "2.0.0"
 demoji = "0.0.3"
+futures = "0.3.28"
+irc = "0.15.0"
 tokio = { version = "1.25.0", features = ["full"]}
 twitchchat = { git = "https://github.com/museun/twitchchat", version = "0.14.8", features = ["async", "tokio", "tokio-util"] }
 youtube_chat = "0.1.4"
