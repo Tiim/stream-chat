@@ -47,7 +47,7 @@ async fn index() -> Html<&'static [u8]> {
 // debug with curl -N http://localhost:8080/sse
 async fn sse_handler(
     Extension(tx): Extension<Sender<Event>>,
-) -> Sse<impl Stream<Item = Result<SSEvent, Infallible>>> {
+) -> Sse<impl Stream<Item = Result<SSEvent, serde_json::Error>>> {
     // let rx = frx();
     let rx = tx.subscribe();
     let stream = unfold(rx, |mut r| async move {
@@ -56,7 +56,7 @@ async fn sse_handler(
             Err(_) => None,
         }
     })
-    .map(|e| format!("{:?}", e))
-    .map(|e| Ok(SSEvent::default().data(e)));
+    .map(|e| serde_json::to_string(&e))
+    .map(|e| e.map(|ev|SSEvent::default().data(ev)));
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
