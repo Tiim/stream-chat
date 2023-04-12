@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::{Error, Result};
+use anyhow::{Error, Result, Context};
 use chrono::Utc;
 use demoji::demoji;
 
@@ -38,12 +38,14 @@ impl YoutubeSource {
         }
     }
     pub async fn run(self) -> Result<String> {
+
+        let stream_url = self.stream_url.clone();
         let mut client = LiveChatClientBuilder::new()
-            .url(self.stream_url)?
+            .url(self.stream_url).with_context(||format!("Invalid url {}", stream_url))?
             .on_chat(|ci| Self::send_message(self.tx.clone(), ci))
             .on_error(|err| Self::send_error(self.tx.clone(), err))
             .build();
-        client.start().await?;
+        client.start().await.with_context(|| format!("Failed to start youtube chat client for url {}", stream_url))?;
         let mut interval = time::interval(Duration::from_millis(1000));
         loop {
             interval.tick().await;

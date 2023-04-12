@@ -4,7 +4,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::source::{self, ChatEvent, Event, ChatSource};
 use twitchchat::{connector::tokio::Connector, messages, runner::AsyncRunner, Status, UserConfig};
 
-use anyhow::Result;
+use anyhow::{Result, Context};
 
 pub struct TwitchSource {
     runner: AsyncRunner,
@@ -13,17 +13,17 @@ pub struct TwitchSource {
 
 impl TwitchSource {
     pub async fn new(tx: UnboundedSender<Event>, channel: String) -> Result<Self> {
-        let user_config = UserConfig::builder().anonymous().build()?;
-        let connector = Connector::twitch()?;
+        let user_config = UserConfig::builder().anonymous().build().with_context(|| "Failed to build Twitch user config")?;
+        let connector = Connector::twitch().with_context(|| "Failed to create twitch connector")?;
 
-        let mut runner = AsyncRunner::connect(connector, &user_config).await?;
-        runner.join(channel.as_str()).await?;
+        let mut runner = AsyncRunner::connect(connector, &user_config).await.with_context(|| "Failed to create twitch connection runner")?;
+        runner.join(channel.as_str()).await.with_context(|| format!("Failed to connect to twich channel {}", channel))?;
         tx.send(Event::Info { msg: format!("joined channel {channel}"), src: Some(ChatSource::Twitch) })?;
         Ok(TwitchSource { runner, tx })
     }
     pub async fn run(mut self) -> anyhow::Result<String> {
         loop {
-            let status = self.runner.next_message().await?;
+            let status = self.runner.next_message().await.with_context(||"Failed to retrieve next message from twitch")?;
             match status {
                 Status::Message(msg) => handle_message(&self.tx, msg),
                 Status::Quit => {}

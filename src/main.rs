@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
     let config = vec![
         SourceConfig::Youtube("@Tiim".to_string()),
         SourceConfig::IRC {
-            nick_name: "stream-chat-proj".to_owned(),
+            nick_name: "stream-chat".to_owned(),
             server: "irc.libera.chat".to_owned(),
             channel: "##tiim".to_owned(),
         },
