@@ -1,22 +1,22 @@
 use crate::source::{ChatEvent, ChatSource, Event};
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use chrono::Utc;
 use futures::stream::StreamExt;
 use irc::{
     client::prelude::{Client, Config},
     proto::Command,
 };
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::broadcast::Sender;
 
 pub struct IrcSource {
-    tx: UnboundedSender<Event>,
+    tx: Sender<Event>,
     client: Client,
     server: String,
 }
 
 impl IrcSource {
     pub async fn new(
-        tx: UnboundedSender<Event>,
+        tx: Sender<Event>,
         nick: String,
         server: String,
         channel: String,
@@ -26,15 +26,27 @@ impl IrcSource {
             server: Some(server.to_owned()),
             ..Config::default()
         })
-        .await.with_context(||format!("Failed to connect to IRC server: {}", server))?;
-        client.identify().with_context(|| format!("Failed identify to IRC server: {}", server))?;
-        client.send_join(channel.to_owned()).with_context(||format!("Failed join IRC channels on server: {}", server))?;
+        .await
+        .with_context(|| format!("Failed to connect to IRC server: {}", server))?;
+        client
+            .identify()
+            .with_context(|| format!("Failed identify to IRC server: {}", server))?;
+        client
+            .send_join(channel.to_owned())
+            .with_context(|| format!("Failed join IRC channels on server: {}", server))?;
         return Ok(IrcSource { tx, client, server });
     }
 
     pub async fn run(mut self) -> anyhow::Result<String> {
-        let mut stream = self.client.stream().with_context(|| format!("Failed to stream IRC messages from server {}", self.server))?;
-        while let Some(message) = stream.next().await.transpose().with_context(|| format!("Failed getting next IRC message from server {}", self.server))? {
+        let mut stream = self.client.stream().with_context(|| {
+            format!("Failed to stream IRC messages from server {}", self.server)
+        })?;
+        while let Some(message) = stream.next().await.transpose().with_context(|| {
+            format!(
+                "Failed getting next IRC message from server {}",
+                self.server
+            )
+        })? {
             let author = message.source_nickname().unwrap_or("anon").to_owned();
             match message.command {
                 Command::PRIVMSG(_channel, msg) => {

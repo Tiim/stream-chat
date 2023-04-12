@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use anyhow::{Error, Result, Context};
+use anyhow::{Context, Error, Result};
 use chrono::Utc;
 use demoji::demoji;
 
-use tokio::{sync::mpsc::UnboundedSender, time};
+use tokio::{sync::broadcast::Sender, time};
 
 use youtube_chat::{
     item::{ChatItem, EmojiItem, MessageItem},
@@ -15,22 +15,22 @@ use crate::source::{ChatEvent, ChatSource, Event};
 
 pub struct YoutubeSource {
     stream_url: String,
-    tx: UnboundedSender<Event>,
+    tx: Sender<Event>,
 }
 
 impl YoutubeSource {
-    pub async fn new(tx: UnboundedSender<Event>, channel_username: String) -> Result<Self> {
+    pub async fn new(tx: Sender<Event>, channel_username: String) -> Result<Self> {
         return Ok(YoutubeSource {
             stream_url: format!("https://www.youtube.com/{}/live", channel_username),
             tx,
         });
     }
-    fn send_message(tx: UnboundedSender<Event>, chat_item: ChatItem) {
+    fn send_message(tx: Sender<Event>, chat_item: ChatItem) {
         if let Err(e) = tx.send(format_message(chat_item)) {
             println!("Error when sending new chat message to consumer: {}", e);
         }
     }
-    fn send_error(tx: UnboundedSender<Event>, err: Error) {
+    fn send_error(tx: Sender<Event>, err: Error) {
         if let Err(e) = tx.send(Event::Error {
             err: err.to_string(),
         }) {
@@ -38,14 +38,16 @@ impl YoutubeSource {
         }
     }
     pub async fn run(self) -> Result<String> {
-
         let stream_url = self.stream_url.clone();
         let mut client = LiveChatClientBuilder::new()
-            .url(self.stream_url).with_context(||format!("Invalid url {}", stream_url))?
+            .url(self.stream_url)
+            .with_context(|| format!("Invalid url {}", stream_url))?
             .on_chat(|ci| Self::send_message(self.tx.clone(), ci))
             .on_error(|err| Self::send_error(self.tx.clone(), err))
             .build();
-        client.start().await.with_context(|| format!("Failed to start youtube chat client for url {}", stream_url))?;
+        client.start().await.with_context(|| {
+            format!("Failed to start youtube chat client for url {}", stream_url)
+        })?;
         let mut interval = time::interval(Duration::from_millis(1000));
         loop {
             interval.tick().await;

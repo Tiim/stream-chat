@@ -1,15 +1,16 @@
 mod dest_console;
+mod dest_termjs;
 mod source;
 mod src_irc;
 mod src_twitch;
 mod src_yt;
 
 use anyhow::Result;
-use source::ChatSource;
+use dest_termjs::TermjsDestination;
 use src_irc::IrcSource;
 use src_twitch::TwitchSource;
 use src_yt::YoutubeSource;
-use tokio::{sync::mpsc::unbounded_channel, task::JoinSet};
+use tokio::{sync::broadcast::channel, task::JoinSet};
 
 use crate::dest_console::ConsoleDestination;
 
@@ -24,12 +25,18 @@ enum SourceConfig {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     // let config = vec![
     //     SourceConfig::Youtube("@LofiGirl".to_string()),
     //     SourceConfig::Twitch("shroud".to_string()),
     // ];
 
+    let res = run().await;
+
+    eprintln!("DONE: {:?}", res);
+}
+
+async fn run() -> Result<()> {
     let config = vec![
         SourceConfig::Youtube("@Tiim".to_string()),
         SourceConfig::IRC {
@@ -40,9 +47,13 @@ async fn main() -> Result<()> {
         SourceConfig::Twitch("tiim_b".to_string()),
     ];
 
-    let (tx, rx) = unbounded_channel();
+    let (tx, rx) = channel(32);
 
     let mut join_set = JoinSet::new();
+    let termjs = TermjsDestination::new(tx.clone(), "127.0.0.1", 8080).run();
+    let console = ConsoleDestination::new(rx.resubscribe()).run();
+    join_set.spawn(console);
+    join_set.spawn(termjs);
 
     for c in config {
         match c {
@@ -67,11 +78,8 @@ async fn main() -> Result<()> {
         }
     }
 
-    let console = ConsoleDestination::new(rx).run();
-    join_set.spawn(console);
-
     while let Some(res) = join_set.join_next().await {
-        let res: Result<String> = res.map_err(|e| anyhow::Error::from(e) ).and_then(|v| v);
+        let res: Result<String> = res.map_err(|e| anyhow::Error::from(e)).and_then(|v| v);
         match res {
             Err(e) => eprintln!("error: {}", e),
             Ok(s) => eprintln!("source {:?} finished running", s),

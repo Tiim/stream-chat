@@ -1,18 +1,19 @@
 use crate::source::{ChatEvent, ChatSource, Event};
 
 use anyhow::Result;
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::broadcast::Receiver;
 
 pub struct ConsoleDestination {
-    rx: UnboundedReceiver<Event>,
+    rx: Receiver<Event>,
 }
 
 impl ConsoleDestination {
-    pub fn new(rx: UnboundedReceiver<Event>) -> Self {
+    pub fn new(rx: Receiver<Event>) -> Self {
         ConsoleDestination { rx }
     }
     pub async fn run(mut self) -> Result<String> {
-        while let Some(event) = self.rx.recv().await {
+        loop {
+            let event = self.rx.recv().await?;
             match event {
                 Event::Chat { chat } => print_chat(chat),
                 Event::Error { err } => println!("{}", err),
@@ -23,7 +24,6 @@ impl ConsoleDestination {
                 ),
             }
         }
-        return Ok("ConsoleDestination".to_owned());
     }
 }
 

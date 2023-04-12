@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Stream Chat</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+    <div id="chat"></div>
+</body>
+<script>
+    const src = new EventSource("/sse");
+
+    src.onmessage = (event) => {
+        const newElement = document.createElement("p");
+        const eventList = document.getElementById("chat");
+
+        newElement.textContent = `message: ${event.data}`;
+        eventList.appendChild(newElement);
+    };
+</script>
+
+</html>
