@@ -1,4 +1,6 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+};
 
 use crate::source::Event;
 use anyhow::Result;
@@ -13,16 +15,16 @@ use futures::StreamExt;
 use std::str::FromStr;
 use tokio::sync::broadcast::Sender;
 
-pub struct TermjsDestination {
+pub struct WebDestination {
     tx: Sender<Event>,
     address: SocketAddr,
 }
 
-impl TermjsDestination {
+impl WebDestination {
     pub fn new(tx: Sender<Event>, host: &str, port: u16) -> Self {
         let ip_addr = IpAddr::V4(Ipv4Addr::from_str(host).unwrap());
         let address = SocketAddr::new(ip_addr, port);
-        TermjsDestination { tx, address }
+        WebDestination { tx, address }
     }
     pub async fn run(self) -> Result<String> {
         let app = Router::new()
@@ -39,10 +41,10 @@ impl TermjsDestination {
 }
 
 async fn js() -> &'static [u8] {
-    include_bytes!("dest_termjs_index.js")
+    include_bytes!("dest_web_index.js")
 }
 async fn index() -> Html<&'static [u8]> {
-    Html(include_bytes!("dest_termjs_index.html"))
+    Html(include_bytes!("dest_web_index.html"))
 }
 
 // debug with curl -N http://localhost:8080/sse
@@ -53,20 +55,14 @@ async fn sse_handler(
     let rx = tx.subscribe();
     let stream = unfold((true, rx), |(first, mut r)| async move {
         if first {
-            return Some((
-                Event::Info {
-                    msg: "Connected".to_string(),
-                    src: None,
-                },
-                (false, r),
-            ));
+            return Some((Event::Info { msg: "Connected".to_string(), src: None }, (false, r)));
         }
         match r.recv().await {
-            Ok(value) => Some((value, (false, r))),
+            Ok(value) => Some((value, (false,r))),
             Err(_) => None,
         }
     })
     .map(|e| serde_json::to_string(&e))
-    .map(|e| e.map(|ev| SSEvent::default().data(ev)));
+    .map(|e| e.map(|ev|SSEvent::default().data(ev)));
     Sse::new(stream).keep_alive(KeepAlive::default())
 }

@@ -1,5 +1,5 @@
 mod dest_console;
-mod dest_termjs;
+mod dest_web;
 mod source;
 mod src_dummy;
 mod src_irc;
@@ -7,7 +7,7 @@ mod src_twitch;
 mod src_yt;
 
 use anyhow::Result;
-use dest_termjs::TermjsDestination;
+use dest_web::WebDestination;
 use src_dummy::DummySource;
 use src_irc::IrcSource;
 use src_twitch::TwitchSource;
@@ -48,6 +48,7 @@ async fn run() -> Result<()> {
         ModuleConfig::TwitchSource("tiim_b".to_string()),
         // ModuleConfig::DummySource,
         ModuleConfig::WebDest,
+        ModuleConfig::ConsoleDest,
     ];
 
     // let config = vec![
@@ -84,7 +85,7 @@ async fn run() -> Result<()> {
                 join_set.spawn(dummy);
             }
             ModuleConfig::WebDest => {
-                let termjs = TermjsDestination::new(tx.clone(), "127.0.0.1", 10888).run();
+                let termjs = WebDestination::new(tx.clone(), "127.0.0.1", 10888).run();
                 join_set.spawn(termjs);
             }
             ModuleConfig::ConsoleDest => {

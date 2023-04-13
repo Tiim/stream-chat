@@ -10,6 +10,8 @@ src.onmessage = (event) => {
     switch (msg.type) {
         case "Chat": chat(newElement, msg); break;
         default:
+            //TODO: format the other event types as well. 
+            //See source::Event for all the event types.
             newElement.textContent = `> ${event.data}\n`;
             break;
     }
@@ -42,7 +44,7 @@ function chat(elem, msg) {
     author.textContent = `<${msg.chat.author}> `;
     author.className = "chat-author";
     const src = document.createElement("span");
-    src.textContent = `${msg.chat.src.substring(0,3)} `;
+    src.textContent = `${msg.chat.src.substring(0, 3)} `;
     src.className = "chat-source";
     const message = document.createElement("span");
     message.textContent = msg.chat.message;
