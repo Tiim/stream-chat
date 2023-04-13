@@ -6,9 +6,11 @@ pub enum ChatSource {
     YoutubeLive,
     Twitch,
     IRC,
+    Dummy,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum Event {
     Chat {
         chat: ChatEvent,

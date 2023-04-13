@@ -5,21 +5,56 @@
     <title>Stream Chat</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/terminal.css@0.7.2/dist/terminal.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&amp;display=swap" rel="stylesheet">
+    <script src="/script.js" ></script>
+    <style>
+        body {
+            /* Terminal.css */
+            --background-color: #262626;
+            --font-color: #ffffff;
+            --primary-color: #57b952;
+            --secondary-color: #4596c8;
+            --error-color: #a05ac0;
+            --font-stack: "Fira Code", Consolas, "Courier New", monospace;
+
+            /* Chat colors */
+            --color-author: #57b952;
+            --color-source: #4596c8;
+        }
+
+        #chat-wrap {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            justify-content: flex-end;
+        }
+
+        #chat {
+            white-space: pre-wrap;
+        }
+
+        #chat>* {
+            display: block;
+            white-space: pre-wrap;
+            max-width: 100%;
+            word-break: break-all;
+        }
+
+        .chat-author {
+            color: var(--color-author);
+        }
+        .chat-source {
+            color: var(--color-source);
+        }
+    </style>
 </head>
 
 <body>
-    <div id="chat"></div>
+    <div id="chat-wrap">
+        <div id="chat"></div>
+        <div class="terminal-prompt"></div>
+    </div>
 </body>
-<script>
-    const src = new EventSource("/sse");
-
-    src.onmessage = (event) => {
-        const newElement = document.createElement("p");
-        const eventList = document.getElementById("chat");
-
-        newElement.textContent = `message: ${event.data}`;
-        eventList.appendChild(newElement);
-    };
-</script>
 
 </html>

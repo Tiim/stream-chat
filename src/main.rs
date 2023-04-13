@@ -1,12 +1,14 @@
 mod dest_console;
 mod dest_termjs;
 mod source;
+mod src_dummy;
 mod src_irc;
 mod src_twitch;
 mod src_yt;
 
 use anyhow::Result;
 use dest_termjs::TermjsDestination;
+use src_dummy::DummySource;
 use src_irc::IrcSource;
 use src_twitch::TwitchSource;
 use src_yt::YoutubeSource;
@@ -14,23 +16,22 @@ use tokio::{sync::broadcast::channel, task::JoinSet};
 
 use crate::dest_console::ConsoleDestination;
 
-enum SourceConfig {
-    Youtube(String),
-    Twitch(String),
-    IRC {
+#[allow(dead_code)]
+enum ModuleConfig {
+    YoutubeSource(String),
+    TwitchSource(String),
+    IrcSource {
         nick_name: String,
         server: String,
         channel: String,
     },
+    DummySource,
+    ConsoleDest,
+    WebDest,
 }
 
 #[tokio::main]
 async fn main() {
-    // let config = vec![
-    //     SourceConfig::Youtube("@LofiGirl".to_string()),
-    //     SourceConfig::Twitch("shroud".to_string()),
-    // ];
-
     let res = run().await;
 
     eprintln!("DONE: {:?}", res);
@@ -38,34 +39,37 @@ async fn main() {
 
 async fn run() -> Result<()> {
     let config = vec![
-        SourceConfig::Youtube("@Tiim".to_string()),
-        SourceConfig::IRC {
+        // ModuleConfig::YoutubeSource("@Tiim".to_string()),
+        ModuleConfig::IrcSource {
             nick_name: "stream-chat".to_owned(),
             server: "irc.libera.chat".to_owned(),
             channel: "##tiim".to_owned(),
         },
-        SourceConfig::Twitch("tiim_b".to_string()),
+        ModuleConfig::TwitchSource("tiim_b".to_string()),
+        // ModuleConfig::DummySource,
+        ModuleConfig::WebDest,
     ];
+
+    // let config = vec![
+    //     SourceConfig::Youtube("@LofiGirl".to_string()),
+    //     SourceConfig::Twitch("shroud".to_string()),
+    // ];
 
     let (tx, rx) = channel(32);
 
     let mut join_set = JoinSet::new();
-    let termjs = TermjsDestination::new(tx.clone(), "127.0.0.1", 8080).run();
-    let console = ConsoleDestination::new(rx.resubscribe()).run();
-    join_set.spawn(console);
-    join_set.spawn(termjs);
 
     for c in config {
         match c {
-            SourceConfig::Twitch(channel_name) => {
+            ModuleConfig::TwitchSource(channel_name) => {
                 let twitch = TwitchSource::new(tx.clone(), channel_name).await?.run();
                 join_set.spawn(twitch);
             }
-            SourceConfig::Youtube(channel_name) => {
+            ModuleConfig::YoutubeSource(channel_name) => {
                 let yt = YoutubeSource::new(tx.clone(), channel_name).await?.run();
                 join_set.spawn(yt);
             }
-            SourceConfig::IRC {
+            ModuleConfig::IrcSource {
                 nick_name,
                 server,
                 channel,
@@ -74,6 +78,18 @@ async fn run() -> Result<()> {
                     .await?
                     .run();
                 join_set.spawn(irc);
+            }
+            ModuleConfig::DummySource => {
+                let dummy = DummySource::new(tx.clone()).await?.run();
+                join_set.spawn(dummy);
+            }
+            ModuleConfig::WebDest => {
+                let termjs = TermjsDestination::new(tx.clone(), "127.0.0.1", 10888).run();
+                join_set.spawn(termjs);
+            }
+            ModuleConfig::ConsoleDest => {
+                let console = ConsoleDestination::new(rx.resubscribe()).run();
+                join_set.spawn(console);
             }
         }
     }

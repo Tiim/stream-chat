@@ -1,5 +1,4 @@
 use std::{
-    convert::Infallible,
     net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 
@@ -31,6 +30,7 @@ impl TermjsDestination {
         let app = Router::new()
             .route("/", get(index))
             .route("/sse", get(sse_handler))
+            .route("/script.js", get(js))
             .layer(Extension(self.tx));
 
         axum::Server::bind(&self.address)
@@ -40,6 +40,9 @@ impl TermjsDestination {
     }
 }
 
+async fn js() -> &'static [u8] {
+    include_bytes!("dest_termjs_index.js")
+}
 async fn index() -> Html<&'static [u8]> {
     Html(include_bytes!("dest_termjs_index.html"))
 }
@@ -50,9 +53,12 @@ async fn sse_handler(
 ) -> Sse<impl Stream<Item = Result<SSEvent, serde_json::Error>>> {
     // let rx = frx();
     let rx = tx.subscribe();
-    let stream = unfold(rx, |mut r| async move {
+    let stream = unfold((true, rx), |(first, mut r)| async move {
+        if first {
+            return Some((Event::Info { msg: "Connected".to_string(), src: None }, (false, r)));
+        }
         match r.recv().await {
-            Ok(value) => Some((value, r)),
+            Ok(value) => Some((value, (false,r))),
             Err(_) => None,
         }
     })

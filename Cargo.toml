@@ -16,5 +16,7 @@ irc = "0.15.0"
 serde = { version = "1.0.160", features = ["serde_derive"] }
 serde_json = "1.0.95"
 tokio = { version = "1.25.0", features = ["full"]}
+# until the next version is released (after 0.14.8)
+# because we need compability with new tokio verson
 twitchchat = { git = "https://github.com/museun/twitchchat", version = "0.14.8", features = ["async", "tokio", "tokio-util"] }
 youtube_chat = "0.1.4"

@@ -32,6 +32,7 @@ fn print_chat(ce: ChatEvent) {
         ChatSource::YoutubeLive => "Yt ",
         ChatSource::Twitch => "TTv",
         ChatSource::IRC => "IRC",
+        ChatSource::Dummy => "DMY",
     };
     println!("{} <{}> {}", src, ce.author, ce.message);
 }
