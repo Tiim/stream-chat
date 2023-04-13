@@ -1,6 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use crate::source::Event;
 use anyhow::Result;
@@ -55,14 +53,20 @@ async fn sse_handler(
     let rx = tx.subscribe();
     let stream = unfold((true, rx), |(first, mut r)| async move {
         if first {
-            return Some((Event::Info { msg: "Connected".to_string(), src: None }, (false, r)));
+            return Some((
+                Event::Info {
+                    msg: "Connected".to_string(),
+                    src: None,
+                },
+                (false, r),
+            ));
         }
         match r.recv().await {
-            Ok(value) => Some((value, (false,r))),
+            Ok(value) => Some((value, (false, r))),
             Err(_) => None,
         }
     })
     .map(|e| serde_json::to_string(&e))
-    .map(|e| e.map(|ev|SSEvent::default().data(ev)));
+    .map(|e| e.map(|ev| SSEvent::default().data(ev)));
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
