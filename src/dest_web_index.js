@@ -31,21 +31,32 @@ src.onmessage = (event) => {
 src.onerror = (evt) => {
     const newElement = document.createElement("div");
     const eventList = document.getElementById("chat");
-    newElement.textContent = `! Connection Error\n`;
-    console.error(evt);
-    eventList.appendChild(newElement);
-}
-src.onopen = () => {
-    const newElement = document.createElement("div");
-    const eventList = document.getElementById("chat");
-    newElement.textContent = `> Connected`;
+    newElement.textContent = `! Connection Error: ${evt}\n`;
     eventList.appendChild(newElement);
 }
 
-function command(_, cmd) {
+
+function command(elem, cmd) {
     switch (cmd.cmd) {
-        case "TTS": speechSynthesis.speak(new SpeechSynthesisUtterance(cmd.value));
+        case "TTS": tts(elem, cmd.value); break;
     }
+}
+
+function tts(_, msg) {
+    const voices = speechSynthesis.getVoices();
+    let voice = null;
+    let langs = ["en-gb", "en-us", "en-"]
+    while (!voice && langs.length) {
+        const lang = langs.shift();
+        voice = voices.find(v => v.lang.toLowerCase().startsWith(lang));
+    }
+    if (!voice) {
+        voice = voices[0];
+    }
+    const utter = new SpeechSynthesisUtterance(msg);
+    utter.voice = voice;
+    utter.lang = "en";
+    speechSynthesis.speak(utter);
 }
 
 function chat(elem, msg) {
