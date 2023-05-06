@@ -22,7 +22,7 @@ impl ConsoleDestination {
                     src.map_or("".to_owned(), |e| format!("{:?}", e)),
                     msg
                 ),
-                Event::Command { cmd } => println!("{:?}", cmd),
+                Event::Command { cmd: _ } => {}
             }
         }
     }
