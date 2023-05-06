@@ -1,16 +1,16 @@
 mod dest_console;
 mod dest_web;
+mod middleware_cmd;
 mod source;
 mod src_dummy;
 mod src_irc;
 mod src_twitch;
 mod src_yt;
-mod middleware_cmd;
 
 use anyhow::Result;
 use dest_web::WebDestination;
-use irc::proto::Command;
-use middleware_cmd::CommandMiddleware;
+
+use middleware_cmd::{ActivatedCommands, CommandMiddleware};
 use src_dummy::DummySource;
 use src_irc::IrcSource;
 use src_twitch::TwitchSource;
@@ -31,7 +31,7 @@ enum ModuleConfig {
     DummySource,
     ConsoleDest,
     WebDest,
-    CommandMiddleware,
+    CommandMiddleware(Vec<ActivatedCommands>),
 }
 
 #[tokio::main]
@@ -53,7 +53,7 @@ async fn run() -> Result<()> {
         // ModuleConfig::DummySource,
         ModuleConfig::WebDest,
         ModuleConfig::ConsoleDest,
-        ModuleConfig::CommandMiddleware,
+        ModuleConfig::CommandMiddleware(vec![ActivatedCommands::TTS]),
     ];
 
     // let config = vec![
@@ -97,8 +97,8 @@ async fn run() -> Result<()> {
                 let console = ConsoleDestination::new(rx.resubscribe()).run();
                 join_set.spawn(console);
             }
-            ModuleConfig::CommandMiddleware => {
-                let cmd = CommandMiddleware::new(tx.clone(), rx.resubscribe()).run();
+            ModuleConfig::CommandMiddleware(cmds) => {
+                let cmd = CommandMiddleware::new(tx.clone(), rx.resubscribe(), cmds).run();
                 join_set.spawn(cmd);
             }
         }
