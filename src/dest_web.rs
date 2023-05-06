@@ -66,6 +66,10 @@ async fn sse_handler(
             Err(_) => None,
         }
     })
+    .map(|e| {
+        println!("sse {:?} {:?}", e, serde_json::to_string(&e));
+        e
+    })
     .map(|e| serde_json::to_string(&e))
     .map(|e| e.map(|ev| SSEvent::default().data(ev)));
     Sse::new(stream).keep_alive(KeepAlive::default())

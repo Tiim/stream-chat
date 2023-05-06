@@ -4,11 +4,13 @@ const elements = [];
 src.onmessage = (event) => {
     const newElement = document.createElement("div");
     const eventList = document.getElementById("chat");
+    console.log(event);
 
     const msg = JSON.parse(event.data);
 
     switch (msg.type) {
         case "Chat": chat(newElement, msg); break;
+        case "Command": command(newElement, msg.cmd); break;
         default:
             //TODO: format the other event types as well. 
             //See source::Event for all the event types.
@@ -26,10 +28,11 @@ src.onmessage = (event) => {
     }
 };
 
-src.onerror = () => {
+src.onerror = (evt) => {
     const newElement = document.createElement("div");
     const eventList = document.getElementById("chat");
     newElement.textContent = `! Connection Error\n`;
+    console.error(evt);
     eventList.appendChild(newElement);
 }
 src.onopen = () => {
@@ -37,6 +40,12 @@ src.onopen = () => {
     const eventList = document.getElementById("chat");
     newElement.textContent = `> Connected`;
     eventList.appendChild(newElement);
+}
+
+function command(_, cmd) {
+    switch (cmd.cmd) {
+        case "TTS": speechSynthesis.speak(new SpeechSynthesisUtterance(cmd.value));
+    }
 }
 
 function chat(elem, msg) {

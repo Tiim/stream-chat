@@ -22,6 +22,15 @@ pub enum Event {
     Error {
         err: String,
     },
+    Command {
+        cmd: Command
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "cmd", content = "value")]
+pub enum Command {
+    TTS(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
