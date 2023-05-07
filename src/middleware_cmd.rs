@@ -1,13 +1,15 @@
 use crate::source::{Command, Event};
 
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::{Receiver, Sender};
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(tag="cmd")]
+#[serde(tag = "cmd", content = "settings")]
 pub enum ActivatedCommands {
-    TTS,
+    TTS {
+        max_length: usize,
+    },
 }
 pub struct CommandMiddleware {
     rx: Receiver<Event>,
@@ -39,7 +41,7 @@ fn parse_commands(cmds: &Vec<ActivatedCommands>, str: &str) -> Option<Command> {
     for cmd in cmds {
         let prefix = cmd.prefix();
         if str_trim.starts_with(prefix) {
-            return Some(cmd.get_command(str_trim.chars().skip(prefix.len()).collect()));
+            return cmd.get_command(str_trim.chars().skip(prefix.len()).collect());
         }
     }
     return None;
@@ -48,12 +50,18 @@ fn parse_commands(cmds: &Vec<ActivatedCommands>, str: &str) -> Option<Command> {
 impl ActivatedCommands {
     fn prefix(&self) -> &'static str {
         match self {
-            Self::TTS => "!tts ",
+            Self::TTS { max_length: _ } => "!tts ",
         }
     }
-    fn get_command(&self, args: String) -> Command {
+    fn get_command(&self, args: String) -> Option<Command> {
         match self {
-            Self::TTS => Command::TTS(args),
+            Self::TTS { max_length } => {
+                if args.len() <= *max_length {
+                    Some(Command::TTS(args))
+                } else {
+                    None
+                }
+            }
         }
     }
 }

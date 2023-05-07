@@ -24,7 +24,7 @@ pub fn load_config() -> Result<Vec<ModuleConfig>> {
     let mut str = String::new();
     file.read_to_string(&mut str)
         .context("Failed to read config. Do you need to initialize with the init subcommand?")?;
-    let res: Cfg = toml::from_str(str.as_str()).context("Can't parse TOML config file")?;
+    let res: Cfg = toml::from_str(str.as_str()).context("Can't parse TOML config file.")?;
 
     return Ok(res.config);
 }
@@ -44,7 +44,7 @@ pub fn init() -> Result<()> {
             port: 10888,
         },
         ModuleConfig::ConsoleDest,
-        ModuleConfig::CommandMiddleware(vec![ActivatedCommands::TTS]),
+        ModuleConfig::CommandMiddleware(vec![ActivatedCommands::TTS { max_length: 100 }]),
     ];
 
     let dirs = BaseDirectories::new()?;
