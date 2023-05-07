@@ -1,8 +1,11 @@
 use crate::source::{Command, Event};
 
 use anyhow::Result;
+use serde::{Serialize, Deserialize};
 use tokio::sync::broadcast::{Receiver, Sender};
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag="cmd")]
 pub enum ActivatedCommands {
     TTS,
 }

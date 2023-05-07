@@ -1,3 +1,4 @@
+mod config;
 mod dest_console;
 mod dest_web;
 mod middleware_cmd;
@@ -8,9 +9,11 @@ mod src_twitch;
 mod src_yt;
 
 use anyhow::Result;
+use clap::{command, Command};
 use dest_web::WebDestination;
 
 use middleware_cmd::{ActivatedCommands, CommandMiddleware};
+use serde::{Deserialize, Serialize};
 use src_dummy::DummySource;
 use src_irc::IrcSource;
 use src_twitch::TwitchSource;
@@ -20,7 +23,9 @@ use tokio::{sync::broadcast::channel, task::JoinSet};
 use crate::dest_console::ConsoleDestination;
 
 #[allow(dead_code)]
-enum ModuleConfig {
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "module", content="value")]
+pub enum ModuleConfig {
     YoutubeSource(String),
     TwitchSource(String),
     IrcSource {
@@ -30,38 +35,32 @@ enum ModuleConfig {
     },
     DummySource,
     ConsoleDest,
-    WebDest,
+    WebDest {
+        interface: String,
+        port: u16,
+    },
     CommandMiddleware(Vec<ActivatedCommands>),
 }
 
 #[tokio::main]
 async fn main() {
-    let res = run().await;
+    let matches = command!()
+        .propagate_version(true)
+        .subcommand(Command::new("init").about("Initialize stream-chat.toml config file"))
+        .get_matches();
 
+    let res = match matches.subcommand() {
+        None => run().await,
+        Some(("init", _)) => config::init(),
+        _ => unreachable!(""),
+    };
     eprintln!("DONE: {:?}", res);
 }
 
 async fn run() -> Result<()> {
-    let config = vec![
-        // ModuleConfig::YoutubeSource("@Tiim".to_string()),
-        ModuleConfig::IrcSource {
-            nick_name: "stream-chat".to_owned(),
-            server: "irc.libera.chat".to_owned(),
-            channel: "##tiim".to_owned(),
-        },
-        ModuleConfig::TwitchSource("tiim_b".to_string()),
-        // ModuleConfig::DummySource,
-        ModuleConfig::WebDest,
-        ModuleConfig::ConsoleDest,
-        ModuleConfig::CommandMiddleware(vec![ActivatedCommands::TTS]),
-    ];
+    let config = config::load_config()?;
 
-    // let config = vec![
-    //     SourceConfig::Youtube("@LofiGirl".to_string()),
-    //     SourceConfig::Twitch("shroud".to_string()),
-    // ];
-
-    let (tx, rx) = channel(32);
+    let (tx, rx) = channel(128);
 
     let mut join_set = JoinSet::new();
 
@@ -89,8 +88,8 @@ async fn run() -> Result<()> {
                 let dummy = DummySource::new(tx.clone()).await?.run();
                 join_set.spawn(dummy);
             }
-            ModuleConfig::WebDest => {
-                let termjs = WebDestination::new(tx.clone(), "127.0.0.1", 10888).run();
+            ModuleConfig::WebDest { interface, port } => {
+                let termjs = WebDestination::new(tx.clone(), &interface, port).run();
                 join_set.spawn(termjs);
             }
             ModuleConfig::ConsoleDest => {
