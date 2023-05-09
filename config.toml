@@ -11,6 +11,9 @@ module = "TwitchSource"
 value = "tiim_b"
 
 [[config]]
+module = "StdinSource"
+
+[[config]]
 module = "WebDest"
 
 [config.value]

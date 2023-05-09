@@ -7,6 +7,7 @@ mod src_dummy;
 mod src_irc;
 mod src_twitch;
 mod src_yt;
+mod src_stdin;
 
 use anyhow::Result;
 use clap::{command, Command, Arg};
@@ -16,6 +17,7 @@ use middleware_cmd::{ActivatedCommands, CommandMiddleware};
 use serde::{Deserialize, Serialize};
 use src_dummy::DummySource;
 use src_irc::IrcSource;
+use src_stdin::StdinSource;
 use src_twitch::TwitchSource;
 use src_yt::YoutubeSource;
 use tokio::{sync::broadcast::channel, task::JoinSet};
@@ -34,6 +36,7 @@ pub enum ModuleConfig {
         channel: String,
     },
     DummySource,
+    StdinSource,
     ConsoleDest,
     WebDest {
         interface: String,
@@ -89,6 +92,10 @@ async fn run(config_file : Option<&str>) -> Result<()> {
             ModuleConfig::DummySource => {
                 let dummy = DummySource::new(tx.clone()).await?.run();
                 join_set.spawn(dummy);
+            }
+            ModuleConfig::StdinSource => {
+                let stdin = StdinSource::new(tx.clone()).await?.run();
+                join_set.spawn(stdin);
             }
             ModuleConfig::WebDest { interface, port } => {
                 let termjs = WebDestination::new(tx.clone(), &interface, port).run();

@@ -7,6 +7,7 @@ pub enum ChatSource {
     Twitch,
     IRC,
     Dummy,
+    Stdin,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
