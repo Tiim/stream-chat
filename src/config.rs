@@ -49,7 +49,7 @@ pub fn init(config_file: Option<&str>) -> Result<()> {
             port: 10888,
         },
         ModuleConfig::ConsoleDest,
-        ModuleConfig::CommandMiddleware(vec![ActivatedCommands::TTS { max_length: 100 }]),
+        ModuleConfig::CommandMiddleware(vec![ActivatedCommands::TTS { max_length: 600 }]),
     ];
 
     let config_file = match config_file {
