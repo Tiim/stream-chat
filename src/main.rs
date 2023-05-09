@@ -9,7 +9,7 @@ mod src_twitch;
 mod src_yt;
 
 use anyhow::Result;
-use clap::{command, Command};
+use clap::{command, Command, Arg};
 use dest_web::WebDestination;
 
 use middleware_cmd::{ActivatedCommands, CommandMiddleware};
@@ -46,19 +46,21 @@ pub enum ModuleConfig {
 async fn main() {
     let matches = command!()
         .propagate_version(true)
+        .arg(Arg::new("config_file").short('c').long("config").value_name("FILE"))
         .subcommand(Command::new("init").about("Initialize stream-chat.toml config file"))
         .get_matches();
 
+    let config_file = matches.get_one::<String>("config_file").map(|x| &**x);
     let res = match matches.subcommand() {
-        None => run().await,
-        Some(("init", _)) => config::init(),
+        None => run(config_file).await,
+        Some(("init", _)) => config::init(config_file),
         _ => unreachable!(""),
     };
     eprintln!("DONE: {:?}", res);
 }
 
-async fn run() -> Result<()> {
-    let config = config::load_config()?;
+async fn run(config_file : Option<&str>) -> Result<()> {
+    let config = config::load_config(config_file)?;
 
     let (tx, rx) = channel(128);
 

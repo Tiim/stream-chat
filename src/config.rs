@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{Read, Write},
+    io::{Read, Write}, path::PathBuf, str::FromStr,
 };
 
 use crate::{middleware_cmd::ActivatedCommands, ModuleConfig};
@@ -16,10 +16,15 @@ struct Cfg {
     config: Vec<ModuleConfig>,
 }
 
-pub fn load_config() -> Result<Vec<ModuleConfig>> {
-    let dirs = BaseDirectories::new()?;
-    let config_file = dirs.place_config_file(CONFIG_NAME)?;
-
+pub fn load_config(config_file: Option<&str>) -> Result<Vec<ModuleConfig>> {
+    let config_file = match config_file {
+        None => {
+            let dirs = BaseDirectories::new()?;
+            let config_file = dirs.place_config_file(CONFIG_NAME)?;
+            config_file
+        }
+        Some(cf) => PathBuf::from_str(cf)?,
+    };
     let mut file = File::open(&config_file)?;
     let mut str = String::new();
     file.read_to_string(&mut str)
@@ -29,7 +34,7 @@ pub fn load_config() -> Result<Vec<ModuleConfig>> {
     return Ok(res.config);
 }
 
-pub fn init() -> Result<()> {
+pub fn init(config_file: Option<&str>) -> Result<()> {
     let config = vec![
         // ModuleConfig::YoutubeSource("@Tiim".to_string()),
         ModuleConfig::IrcSource {
@@ -47,8 +52,14 @@ pub fn init() -> Result<()> {
         ModuleConfig::CommandMiddleware(vec![ActivatedCommands::TTS { max_length: 100 }]),
     ];
 
-    let dirs = BaseDirectories::new()?;
-    let config_file = dirs.place_config_file(CONFIG_NAME)?;
+    let config_file = match config_file {
+        None => {
+            let dirs = BaseDirectories::new()?;
+            let config_file = dirs.place_config_file(CONFIG_NAME)?;
+            config_file
+        }
+        Some(cf) => PathBuf::from_str(cf)?,
+    };
 
     let mut file = File::create(&config_file)?;
     let res =

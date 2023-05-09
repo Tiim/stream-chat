@@ -1,0 +1,30 @@
+[[config]]
+module = "IrcSource"
+
+[config.value]
+nick_name = "stream-chat"
+server = "irc.libera.chat"
+channel = "##tiim"
+
+[[config]]
+module = "TwitchSource"
+value = "tiim_b"
+
+[[config]]
+module = "WebDest"
+
+[config.value]
+interface = "127.0.0.1"
+port = 10888
+
+[[config]]
+module = "ConsoleDest"
+
+[[config]]
+module = "CommandMiddleware"
+
+[[config.value]]
+cmd = "TTS"
+
+[config.value.settings]
+max_length = 600
