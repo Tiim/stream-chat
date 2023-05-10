@@ -15,9 +15,10 @@ Currently the following modules are implemented:
 The configuration currently lives inside of [`main.rs`](src/main.rs). Reading the configuration from a config file is planned.
 
 
-## Usage
+## Build 
 
 - clone this repo using `git clone`
-- edit the settings in `main.rs` to fit your needs.
+- install the sqlx-cli: `cargo install sqlx-cli`
+- generate a database for sql checking and run migrations: `sqlx database create && sqlx migrate run`
 - compile and install with `cargo install`.
 - run the program: `stream-chat`.

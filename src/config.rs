@@ -49,6 +49,7 @@ pub fn init(config_file: Option<&str>) -> Result<()> {
             port: 10888,
         },
         ModuleConfig::ConsoleDest,
+        ModuleConfig::SqliteDest,
         ModuleConfig::CommandMiddleware(vec![ActivatedCommands::TTS { max_length: 600 }]),
     ];
 

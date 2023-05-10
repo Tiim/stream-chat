@@ -1,20 +1,25 @@
 mod config;
 mod dest_console;
+mod dest_sqlite;
 mod dest_web;
 mod middleware_cmd;
 mod source;
+mod sqlite;
 mod src_dummy;
 mod src_irc;
+mod src_stdin;
 mod src_twitch;
 mod src_yt;
-mod src_stdin;
 
 use anyhow::Result;
-use clap::{command, Command, Arg};
+use clap::{command, Arg, Command};
+use dest_sqlite::SqliteDestination;
 use dest_web::WebDestination;
 
 use middleware_cmd::{ActivatedCommands, CommandMiddleware};
 use serde::{Deserialize, Serialize};
+use sqlite::get_database;
+use sqlx::{Pool, Sqlite};
 use src_dummy::DummySource;
 use src_irc::IrcSource;
 use src_stdin::StdinSource;
@@ -26,7 +31,7 @@ use crate::dest_console::ConsoleDestination;
 
 #[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "module", content="value")]
+#[serde(tag = "module", content = "value")]
 pub enum ModuleConfig {
     YoutubeSource(String),
     TwitchSource(String),
@@ -42,29 +47,39 @@ pub enum ModuleConfig {
         interface: String,
         port: u16,
     },
+    SqliteDest,
     CommandMiddleware(Vec<ActivatedCommands>),
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let matches = command!()
         .propagate_version(true)
-        .arg(Arg::new("config_file").short('c').long("config").value_name("FILE"))
+        .arg(
+            Arg::new("config_file")
+                .short('c')
+                .long("config")
+                .value_name("FILE"),
+        )
+        .arg(Arg::new("db_file").long("db").value_name("FILE"))
         .subcommand(Command::new("init").about("Initialize stream-chat.toml config file"))
         .get_matches();
 
     let config_file = matches.get_one::<String>("config_file").map(|x| &**x);
+    let db_file = matches.get_one::<String>("db_file").map(|x| &**x);
+
     let res = match matches.subcommand() {
-        None => run(config_file).await,
+        None => run(config_file, db_file).await,
         Some(("init", _)) => config::init(config_file),
         _ => unreachable!(""),
     };
     eprintln!("DONE: {:?}", res);
+    Ok(())
 }
 
-async fn run(config_file : Option<&str>) -> Result<()> {
+async fn run(config_file: Option<&str>, db_file: Option<&str>) -> Result<()> {
     let config = config::load_config(config_file)?;
-
+    let db = get_database(db_file).await?;
     let (tx, rx) = channel(128);
 
     let mut join_set = JoinSet::new();
@@ -105,6 +120,10 @@ async fn run(config_file : Option<&str>) -> Result<()> {
                 let console = ConsoleDestination::new(rx.resubscribe()).run();
                 join_set.spawn(console);
             }
+            ModuleConfig::SqliteDest => {
+                let sqlite = SqliteDestination::new(rx.resubscribe(), &db).run();
+                join_set.spawn(sqlite);
+            }
             ModuleConfig::CommandMiddleware(cmds) => {
                 let cmd = CommandMiddleware::new(tx.clone(), rx.resubscribe(), cmds).run();
                 join_set.spawn(cmd);
@@ -120,5 +139,6 @@ async fn run(config_file : Option<&str>) -> Result<()> {
         }
     }
 
+    join_set.shutdown().await;
     return Ok(());
 }
