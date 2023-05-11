@@ -4,7 +4,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::{Receiver, Sender};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 #[serde(tag = "cmd", content = "settings")]
 pub enum ActivatedCommands {
     TTS {

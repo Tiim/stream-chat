@@ -24,6 +24,9 @@ port = 10888
 module = "ConsoleDest"
 
 [[config]]
+module = "SqliteDest"
+
+[[config]]
 module = "CommandMiddleware"
 
 [[config.value]]

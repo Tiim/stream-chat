@@ -1,5 +1,5 @@
 CREATE TABLE events (
     id TEXT PRIMARY KEY NOT NULL,
-    ts TEXT NOT NULL DEFAULT datetime(),
+    ts TEXT NOT NULL,
     data TEXT NOT NULL
 );

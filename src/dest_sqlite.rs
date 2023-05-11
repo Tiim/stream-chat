@@ -1,7 +1,8 @@
-use crate::source::{ChatEvent, ChatSource, Event};
+use crate::source::Event;
 
 use anyhow::Result;
-use sqlx::{migrate::MigrateDatabase, Pool, Sqlite, SqlitePool};
+use chrono::Utc;
+use sqlx::{Pool, Sqlite};
 use tokio::sync::broadcast::Receiver;
 use uuid::Uuid;
 
@@ -17,14 +18,20 @@ impl SqliteDestination {
     pub async fn run(mut self) -> Result<String> {
         loop {
             let event = self.rx.recv().await?;
-            let conn = self.db.acquire().await?;
+            let mut conn = self.db.acquire().await?;
+
+            let event_str = serde_json::to_string(&event)?;
+            let id = Uuid::new_v4().to_string();
+            let ts = Utc::now().to_rfc3339();
 
             sqlx::query!(
-                "INSERT INTO events (id, data) VALUES (?, ?);",
-                Uuid::new_v4(),
-                event,
+                "INSERT INTO events (id, ts, data) VALUES (?, ?, ?);",
+                id,
+                ts,
+                event_str,
             )
-            .fetch(conn);
+            .execute(&mut conn)
+            .await?;
         }
     }
 }
