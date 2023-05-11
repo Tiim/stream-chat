@@ -7,37 +7,53 @@ use twitchchat::{connector::tokio::Connector, messages, runner::AsyncRunner, Sta
 use anyhow::{Context, Result};
 
 pub struct TwitchSource {
-    runner: AsyncRunner,
+    channel: String,
     tx: Sender<Event>,
 }
 
 impl TwitchSource {
     pub async fn new(tx: Sender<Event>, channel: String) -> Result<Self> {
+        Ok(TwitchSource { channel, tx })
+    }
+    pub async fn run(self) -> anyhow::Result<String> {
         let user_config = UserConfig::builder()
             .anonymous()
             .build()
             .with_context(|| "Failed to build Twitch user config")?;
         let connector = Connector::twitch().with_context(|| "Failed to create twitch connector")?;
 
-        let mut runner = AsyncRunner::connect(connector, &user_config)
-            .await
-            .with_context(|| "Failed to create twitch connection runner")?;
-        runner
-            .join(channel.as_str())
-            .await
-            .with_context(|| format!("Failed to connect to twich channel {}", channel))?;
+        let mut retries = 0;
+        let mut runner: AsyncRunner;
+        loop {
+            let res = AsyncRunner::connect(connector.clone(), &user_config)
+                .await
+                .with_context(|| "Failed to create twitch connection runner");
 
-        tx.send(Event::Info {
-            msg: format!("joined channel {channel}"),
+            match res {
+                Ok(run) => {
+                    runner = run;
+                    break;
+                }
+                Err(e) => {
+                    retries += 1;
+                    if retries > 5 {
+                        return Err(e);
+                    }
+                }
+            }
+        }
+        runner
+            .join(self.channel.as_str())
+            .await
+            .with_context(|| format!("Failed to connect to twich channel {}", self.channel))?;
+
+        self.tx.send(Event::Info {
+            msg: format!("joined channel {}", self.channel),
             src: Some(ChatSource::Twitch),
         })?;
 
-        Ok(TwitchSource { runner, tx })
-    }
-    pub async fn run(mut self) -> anyhow::Result<String> {
         loop {
-            let status = self
-                .runner
+            let status = runner
                 .next_message()
                 .await
                 .with_context(|| "Failed to retrieve next message from twitch")?;

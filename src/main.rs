@@ -19,7 +19,7 @@ use dest_web::WebDestination;
 use middleware_cmd::{ActivatedCommands, CommandMiddleware};
 use serde::{Deserialize, Serialize};
 use sqlite::get_database;
-use sqlx::{Pool, Sqlite};
+
 use src_dummy::DummySource;
 use src_irc::IrcSource;
 use src_stdin::StdinSource;
@@ -29,8 +29,10 @@ use tokio::{sync::broadcast::channel, task::JoinSet};
 
 use crate::dest_console::ConsoleDestination;
 
+use strum_macros::Display;
+
 #[allow(dead_code)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Display)]
 #[serde(tag = "module", content = "value")]
 pub enum ModuleConfig {
     YoutubeSource(String),
@@ -86,22 +88,31 @@ async fn run(config_file: Option<&str>, db_file: Option<&str>) -> Result<()> {
 
     for c in config {
         match c {
-            ModuleConfig::TwitchSource(channel_name) => {
-                let twitch = TwitchSource::new(tx.clone(), channel_name).await?.run();
+            ModuleConfig::TwitchSource(ref channel_name) => {
+                let twitch = TwitchSource::new(tx.clone(), channel_name.to_string())
+                    .await?
+                    .run();
                 join_set.spawn(twitch);
             }
-            ModuleConfig::YoutubeSource(channel_name) => {
-                let yt = YoutubeSource::new(tx.clone(), channel_name).await?.run();
+            ModuleConfig::YoutubeSource(ref channel_name) => {
+                let yt = YoutubeSource::new(tx.clone(), channel_name.to_string())
+                    .await?
+                    .run();
                 join_set.spawn(yt);
             }
             ModuleConfig::IrcSource {
-                nick_name,
-                server,
-                channel,
+                ref nick_name,
+                ref server,
+                ref channel,
             } => {
-                let irc = IrcSource::new(tx.clone(), nick_name, server, channel)
-                    .await?
-                    .run();
+                let irc = IrcSource::new(
+                    tx.clone(),
+                    nick_name.to_string(),
+                    server.to_string(),
+                    channel.to_string(),
+                )
+                .await?
+                .run();
                 join_set.spawn(irc);
             }
             ModuleConfig::DummySource => {
@@ -112,8 +123,8 @@ async fn run(config_file: Option<&str>, db_file: Option<&str>) -> Result<()> {
                 let stdin = StdinSource::new(tx.clone()).await?.run();
                 join_set.spawn(stdin);
             }
-            ModuleConfig::WebDest { interface, port } => {
-                let termjs = WebDestination::new(tx.clone(), &interface, port).run();
+            ModuleConfig::WebDest { ref interface, ref port } => {
+                let termjs = WebDestination::new(tx.clone(), interface, port.clone()).run();
                 join_set.spawn(termjs);
             }
             ModuleConfig::ConsoleDest => {
@@ -124,11 +135,12 @@ async fn run(config_file: Option<&str>, db_file: Option<&str>) -> Result<()> {
                 let sqlite = SqliteDestination::new(rx.resubscribe(), &db).run();
                 join_set.spawn(sqlite);
             }
-            ModuleConfig::CommandMiddleware(cmds) => {
-                let cmd = CommandMiddleware::new(tx.clone(), rx.resubscribe(), cmds).run();
+            ModuleConfig::CommandMiddleware(ref cmds) => {
+                let cmd = CommandMiddleware::new(tx.clone(), rx.resubscribe(), &cmds).run();
                 join_set.spawn(cmd);
             }
         }
+        println!(" - Loaded module {}", c);
     }
 
     while let Some(res) = join_set.join_next().await {

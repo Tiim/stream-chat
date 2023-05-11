@@ -18,8 +18,8 @@ pub struct CommandMiddleware {
 }
 
 impl CommandMiddleware {
-    pub fn new(tx: Sender<Event>, rx: Receiver<Event>, cmds: Vec<ActivatedCommands>) -> Self {
-        CommandMiddleware { rx, tx, cmds }
+    pub fn new(tx: Sender<Event>, rx: Receiver<Event>, cmds: &Vec<ActivatedCommands>) -> Self {
+        CommandMiddleware { rx, tx, cmds: cmds.to_vec() }
     }
     pub async fn run(mut self) -> Result<String> {
         loop {
