@@ -11,6 +11,7 @@ pub struct TwitchSource {
     tx: Sender<Event>,
 }
 
+// TODO: use the twitch api to receive other types of events as well.
 impl TwitchSource {
     pub async fn new(tx: Sender<Event>, channel: String) -> Result<Self> {
         Ok(TwitchSource { channel, tx })
